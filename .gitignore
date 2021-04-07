@@ -1,0 +1,7 @@
+# NIM
+nimcache/
+nimblecache/
+htmldocs/
+
+# pewy
+pewy
