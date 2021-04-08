@@ -5,8 +5,12 @@ import
   gamemap,
   renderer
 
+
+# TODO Moving this to input.nim is causing some circular issues
+# Try to do better
 type PInput* = object
   blockSelection*: int
+  orientation*: int
   startBlock*: int
   endBlock*: int
 
@@ -67,7 +71,7 @@ proc main() =
       glEnable(GL_BLEND)
       for b in blocksInSelection(gPewy):
         let transf = Transform(position: vec2((float32)b.x, (float32)b.y),
-                               scale: 1, rotation: 0f)
+                               scale: 1, rotation: float(gPewy.pinput.orientation * 90))
         gPewy.render.renderTile(transf, gPewy.pinput.blockSelection)
       glDisable(GL_BLEND)
       gPewy.render.setColor()
