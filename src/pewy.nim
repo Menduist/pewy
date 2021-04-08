@@ -3,17 +3,21 @@ import
   glm,
   transform,
   gamemap,
-  renderer,
-  math
+  renderer
+
+type PInput* = object
+  blockSelection*: int
+  startBlock*: int
+  endBlock*: int
 
 type Pewy* = object
-  window: GLFWWindow
+  window*: GLFWWindow
   render*: PRenderer
-  map: GameMap
+  pinput*: PInput
+  map*: GameMap
 
 var
-  pewy: Pewy
-  blockSelection = 1
+  gPewy*: Pewy
 
 when defined(emscripten):
   import jsbind/emscripten
@@ -34,62 +38,43 @@ else:
 
 
 ## HANDLERS
-proc keyProc(window: GLFWWindow, key: int32, scancode: int32,
-             action: int32, mods: int32): void {.cdecl.} =
-  if action == GLFWPress:
-    case key:
-    of GLFWKey.ESCAPE:
-      window.setWindowShouldClose(true)
-    of GLFWKey.Period:
-      blockSelection += 1
-      if blockSelection > 5:
-        blockSelection = 1
-    else: discard
-
-
 proc updateWindowSize(window: GLFWWindow, width: int32, height: int32): void {.cdecl.} =
-  pewy.render.setWindowSize(width, height)
+  gPewy.render.setWindowSize(width, height)
+
+import input
 
 ## MAIN
 proc main() =
-  pewy.window = createWindow()
-  if pewy.window == nil:
+  gPewy.window = createWindow()
+  if gPewy.window == nil:
     quit(-1)
 
-  discard pewy.window.setKeyCallback(keyProc)
-  discard pewy.window.setFramebufferSizeCallback(updateWindowSize)
+  discard gPewy.window.setFramebufferSizeCallback(updateWindowSize)
 
-  pewy.render = createRenderer()
-  pewy.render.setWindowSize(800, 600)
-  pewy.map = createGameMap(100, 50)
+  gPewy.render = createRenderer()
+  gPewy.render.setWindowSize(800, 600)
+  gPewy.map = createGameMap(100, 50)
+  gPewy.pinput = createInput(gPewy.window)
 
-  mainLoop pewy.window.windowShouldClose:
+  mainLoop gPewy.window.windowShouldClose:
     glfwPollEvents()
-    pewy.render.renderGameMap(pewy.map)
+    gPewy.render.renderGameMap(gPewy.map)
 
-    var posX, posY: float64
-    pewy.window.getCursorPos(addr posX, addr posY)
+    gPewy.updateInput()
 
-    let worldCursorPosition = pewy.render.screenToWorld(vec2(posX, posY))
-    let transf = Transform(position: vec2[float32](trunc(worldCursorPosition.x), trunc(worldCursorPosition.y)),
-                           scale: 1, rotation: 0f)
-
-    let cursorBlockPosition = pewy.map.getBlockIndex(int transf.position.x, int transf.position.y)
-    if cursorBlockPosition >= 0 and cursorBlockPosition < pewy.map.data.len:
-      if pewy.window.getMouseButton(GLFWMouseButton.Button1) > 0:
-          pewy.map.data[cursorBlockPosition] = int16(blockSelection)
-      if pewy.window.getMouseButton(GLFWMouseButton.Button2) > 0:
-        pewy.map.data[cursorBlockPosition] = 0
-
-      pewy.render.setColor(vec4(1f, 1f, 1f, 0.5f))
+    if gPewy.pinput.endBlock >= 0:
+      gPewy.render.setColor(vec4(1f, 1f, 1f, 0.5f))
       glEnable(GL_BLEND)
-      pewy.render.renderTile(transf, blockSelection)
+      for b in blocksInSelection(gPewy):
+        let transf = Transform(position: vec2((float32)b.x, (float32)b.y),
+                               scale: 1, rotation: 0f)
+        gPewy.render.renderTile(transf, gPewy.pinput.blockSelection)
       glDisable(GL_BLEND)
-      pewy.render.setColor()
+      gPewy.render.setColor()
 
-    pewy.window.swapBuffers()
+    gPewy.window.swapBuffers()
 
-  pewy.window.destroyWindow()
+  gPewy.window.destroyWindow()
   glfwTerminate()
 
 when isMainModule:

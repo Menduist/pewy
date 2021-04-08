@@ -1,4 +1,6 @@
-import sequtils
+import
+  sequtils,
+  glm
 
 type GameMap* = object
   width*, height*: int
@@ -11,3 +13,13 @@ proc createGameMap*(width: int, height: int): GameMap =
 
 func getBlockIndex*(self: GameMap, x: int, y: int): int {.inline.} =
   x + y * self.width
+
+proc setBlockValue*(self: var GameMap, blockId: int, newType: int16) =
+  self.data[blockId] = newType
+
+proc setBlockValue*(self: var GameMap, x: int, y: int, newType: int16) =
+  let blockId = self.getBlockIndex(x, y)
+  self.setBlockValue(blockId, newType)
+
+func getBlockLocation*(self: GameMap, blockId: int): Vec2[float32] =
+  vec2(float32(blockId %% self.width), float32(blockId div self.width))
