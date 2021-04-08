@@ -14,6 +14,10 @@ proc keyProc(window: GLFWWindow, key: int32, scancode: int32,
       self.blockSelection += 1
       if self.blockSelection > 5:
         self.blockSelection = 1
+    of GLFWKey.Comma:
+      self.orientation += 1
+      if self.orientation > 3:
+        self.orientation = 0
     else: discard
 
 func getMouseBlockLocation(p: var Pewy): int =
@@ -40,7 +44,7 @@ iterator blocksInSelection*(p: var Pewy): Vec2[int] =
 
 proc buildBlocks(p: var Pewy) =
   for b in blocksInSelection(p):
-    p.map.setBlockValue(b.x, b.y, int16(p.pinput.blockSelection))
+    p.map.setBlockValue(b.x, b.y, int16(p.pinput.blockSelection), p.pinput.orientation)
 
 proc updateInput*(p: var Pewy) =
   let cursorBlockPosition = p.getMouseBlockLocation()
@@ -59,7 +63,7 @@ proc updateInput*(p: var Pewy) =
     p.pinput.startBlock = -1
 
   if gPewy.window.getMouseButton(GLFWMouseButton.Button2) > 0:
-    gPewy.map.data[cursorBlockPosition] = 0
+    p.map.setBlockValue(cursorBlockPosition, 0)
 
 
 proc createInput*(window: GLFWWindow): PInput =

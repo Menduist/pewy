@@ -71,7 +71,8 @@ proc renderGameMap*(self: PRenderer, map: GameMap) =
       let blockType = map.data[x + y * map.width]
       transf.position.x = float(x)
       transf.position.y = float(y)
-      self.renderTile(transf, blockType)
+      transf.rotation = float(blockType.blockOrientation) * 90f
+      self.renderTile(transf, int(blockType.blockTile))
 
 ## INIT -----------------------------------
 
