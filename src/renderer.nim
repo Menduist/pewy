@@ -3,8 +3,7 @@ import
   nimgl/[glfw, opengl],
   glm,
   transform,
-  gamemap,
-  math
+  gamemap
 
 ## TYPES ----------------------------------
 
@@ -51,7 +50,7 @@ proc renderTile*(self: PRenderer, trans: Transform, tile: int = 0) =
   tilerVec.x = 1f / 8f
   tilerVec.y = -1f / 8f
   tilerVec.z = float(tile %% 8)
-  tilerVec.w = trunc(tile / 8)
+  tilerVec.w = float(tile div 8)
 
   glUniform4fv(self.tilerUniform, 1, tilerVec.caddr)
 
