@@ -44,7 +44,11 @@ iterator blocksInSelection*(p: var Pewy): Vec2[int] =
 
 proc buildBlocks(p: var Pewy) =
   for b in blocksInSelection(p):
-    p.map.setBlockValue(b.x, b.y, int16(p.pinput.blockSelection), p.pinput.orientation)
+    let blockId = p.map.getBlockIndex(b.x, b.y)
+    if p.map.data[blockId].blockType == bEngine:
+      p.map.createShip(blockId)
+    else:
+      p.map.setBlockValue(blockId, int16(p.pinput.blockSelection), p.pinput.orientation)
 
 proc updateInput*(p: var Pewy) =
   let cursorBlockPosition = p.getMouseBlockLocation()
