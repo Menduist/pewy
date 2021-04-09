@@ -62,9 +62,11 @@ proc main() =
 
   mainLoop gPewy.window.windowShouldClose:
     glfwPollEvents()
-    gPewy.render.renderGameMap(gPewy.map)
 
+    gPewy.map.update()
     gPewy.updateInput()
+
+    gPewy.render.renderGameMap(gPewy.map)
 
     if gPewy.pinput.endBlock >= 0:
       gPewy.render.setColor(vec4(1f, 1f, 1f, 0.5f))
