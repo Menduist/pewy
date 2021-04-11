@@ -1,6 +1,6 @@
 import
   sequtils,
-  glm, sets
+  glm, sets, algorithm, math
 
 type Ship* = object
   origin: Vec2[int16]
@@ -18,6 +18,22 @@ type GameMap* = object
   width*, height*: int
   data*: seq[GameBlock]
   ships*: seq[Ship]
+
+iterator countupordown*[T](a, b: T, step: Positive = 1): T {.inline.} =
+  var
+    avalue: int = int(a)
+    bvalue: int = int(b)
+    yieldedValue = addr avalue
+    stepvalue: int = int(step)
+
+  if a > b:
+    swap(avalue, bvalue)
+    yieldedValue = addr bvalue
+    stepvalue = -stepvalue
+
+  while avalue <= bvalue:
+    yield yieldedValue[]
+    inc(yieldedValue[], stepvalue)
 
 proc createGameMap*(width: int, height: int): GameMap =
   result.width = width
@@ -79,28 +95,49 @@ func getShipVelocity(self: var GameMap, ship: ptr Ship): Vec2[int16] =
     if self.data[blockId].blockType == bThruster:
       result += velocities[self.data[blockId].blockOrientation]
 
+func isBlockInShip(self: var GameMap, ship: ptr Ship, b: Vec2[int16]): bool =
+  let relPos = b - ship.origin
+  relPos in ship.blocks
+
 proc updateShip(self: var GameMap, ship: ptr Ship) =
-  let velocity = self.getShipVelocity(ship)
-  if velocity.x == 0 and velocity.y == 0: return
+  var velocity = self.getShipVelocity(ship)
 
-  var
-    movedBlocks: HashSet[int16]
+  var blocksIds = 0..ship.blocks.len()-1
+  if velocity.x != 0:
+    ship.blocks = ship.blocks.sortedByIt(it.x)
+    if velocity.x > 0:
+      blocksIds = ship.blocks.len()-1..0
+  elif velocity.y != 0:
+    ship.blocks = ship.blocks.sortedByIt(it.y)
+    if velocity.y > 0:
+      blocksIds = ship.blocks.len()-1..0
+  else: return #No movement
 
-  #TODO is algorithm is really dumb (not taking collision in account, bad perf, etc..)
-  while movedBlocks.len() != ship.blocks.len():
-    for index, b in ship.blocks:
-      if int16(index) in movedBlocks: continue
-      let
-        currentPos = b + ship.origin
-        newPos = currentPos + velocity
-        newPosId = self.getBlockIndex(newPos.x, newPos.y)
+  for index in countupordown(blocksIds.a, blocksIds.b):
+    let
+      b = ship.blocks[index]
+      currentPos = b + ship.origin
+    var
+      newPos = currentPos + velocity
+      newPosId = self.getBlockIndex(newPos.x, newPos.y)
 
-      if self.data[newPosId].blockType == bNone:
-        let oldPosId = self.getBlockIndex(currentPos.x, currentPos.y)
-        self.data[newPosId] = self.data[oldPosId]
-        self.data[oldPosId].blockType = bNone
-        self.data[oldPosId].blockTile = 0
-        movedBlocks.incl(int16(index))
+    while self.isBlockInShip(ship, newPos) == false and self.data[newPosId].blockType != bNone:
+      velocity.x -= int16(sgn(velocity.x))
+      velocity.y -= int16(sgn(velocity.y))
+      newPos = currentPos + velocity
+      newPosId = self.getBlockIndex(newPos.x, newPos.y)
+
+  for index in countupordown(blocksIds.a, blocksIds.b):
+    let
+      b = ship.blocks[index]
+      currentPos = b + ship.origin
+      newPos = currentPos + velocity
+      newPosId = self.getBlockIndex(newPos.x, newPos.y)
+
+    if self.data[newPosId].blockType == bNone:
+      let oldPosId = self.getBlockIndex(currentPos.x, currentPos.y)
+      self.data[newPosId] = self.data[oldPosId]
+      self.data[oldPosId] = GameBlock()
   ship.origin += velocity
 
 proc createShip*(self: var GameMap, blockId: int) =
@@ -119,7 +156,7 @@ func updateBlock(self: var GameMap, x: int, y: int) =
   of bTurret: discard
   else: discard
 
-func update*(self: var GameMap) =
+proc update*(self: var GameMap) =
   for y in 0..<self.height:
     for x in 0..<self.width:
       self.updateBlock(x, y)
