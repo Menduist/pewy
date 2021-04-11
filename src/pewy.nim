@@ -3,7 +3,7 @@ import
   glm,
   transform,
   gamemap,
-  renderer
+  renderer, times
 
 
 # TODO Moving this to input.nim is causing some circular issues
@@ -18,6 +18,7 @@ type Pewy* = object
   window*: GLFWWindow
   render*: PRenderer
   pinput*: PInput
+  lastUpdate: Time
   map*: GameMap
 
 var
@@ -59,11 +60,17 @@ proc main() =
   gPewy.render.setWindowSize(800, 600)
   gPewy.map = createGameMap(100, 50)
   gPewy.pinput = createInput(gPewy.window)
+  gPewy.lastUpdate = getTime()
 
   mainLoop gPewy.window.windowShouldClose:
     glfwPollEvents()
 
-    gPewy.map.update()
+    let
+      now = getTime()
+      deltaTime = now - gPewy.lastUpdate
+    if deltaTime.inMilliseconds() > 700:
+      gPewy.map.update()
+      gPewy.lastUpdate += initDuration(milliseconds = 700)
     gPewy.updateInput()
 
     gPewy.render.renderGameMap(gPewy.map)
